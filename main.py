@@ -4,6 +4,7 @@ import io
 import json
 import pathlib
 import re
+import os
 
 import pandas as pd
 
@@ -11,9 +12,18 @@ import pandas as pd
 @dataclasses.dataclass
 class FilePaths:
     input_file1: str = "data.csv"
-    output_file1: str = "normalized_data.csv"
-    output_file2: str = "normalized_data.json"
-    output_file3: str = "normalized_data.jsonl"
+    output_file1: str = "normalized_data1.csv"
+    output_file2: str = "normalized_data2.json"
+    output_file3: str = "normalized_data3.jsonl"
+    output_file4: str = "normalized_data4.txt"
+    output_file5: str = "normalized_data5.txt"
+    output_file7: str = "normalized_data7.txt"
+    output_file8: str = "normalized_data8.txt"
+    output_file9: str = "normalized_data9.txt"
+    output_file10: str = "normalized_data10.txt"
+    output_file11: str = "normalized_data11.json"
+    output_file12: str = "normalized_data12.jsonl"
+    output_file13: str = "normalized_data13.json"
 
     def clean(self):
         for field in dataclasses.fields(self):
@@ -25,7 +35,8 @@ class FilePaths:
 fp = FilePaths()
 fp.clean()
 
-header = "TYPE,DATE,START TIME,END TIME,IMPORT (KWh),EXPORT (KWh),NOTES"
+header1 = "TYPE,DATE,START TIME,END TIME,IMPORT (KWh),EXPORT (KWh),NOTES"
+header2 = "type,date,start_time,end_time,import_kwh,export_kwh,notes"
 
 
 def assert_file_contains_expected_line(file_path, expected_line):
@@ -43,24 +54,39 @@ def assert_file_contains_expected_line(file_path, expected_line):
 
 
 try:
-    assert_file_contains_expected_line(fp.input_file1, header)
+    assert_file_contains_expected_line(fp.input_file1, header1)
 except AssertionError as e:
     print(f"AssertionError: {e}")
-    print(f"Expected line: {header}")
+    print(f"Expected line: {header1}")
     raise e
 
-with open(fp.input_file1, "r") as file:
+
+with open(fp.input_file1, "r") as infile:
+    data = infile.read()
+
+
+converted_data = data.replace(header1, header2)
+
+with open(fp.output_file5, "w") as outfile:
+    outfile.write(converted_data)
+
+pathlib.Path(fp.output_file8).write_text(converted_data)
+
+with open(fp.output_file8, "r") as file:
     for line in file:
-        if line.startswith(header):
+        if line.startswith(header2):
             break
 
-    data = file.read()
+    data5 = file.read()
 
-data = header + "\n" + data
 
-csv_string_io = io.StringIO(data)
+data5 = header2 + "\n" + data5
+pathlib.Path(fp.output_file7).write_text(data5)
 
-with open(fp.output_file1, "w", newline="") as outfile:
+
+csv_string_io = io.StringIO(data5)
+
+with open(fp.output_file10, "w", newline="") as outfile:
     reader = csv.reader(csv_string_io)
     writer = csv.writer(outfile)
 
@@ -69,32 +95,35 @@ with open(fp.output_file1, "w", newline="") as outfile:
             row.append("")
         writer.writerow(row)
 
-header_names = header.split(",")
+header_names = header2.split(",")
 
 df = pd.read_csv(
-    io.StringIO(data),
-    header=None,
+    fp.output_file10,
     names=header_names,
 )
 
-df = pd.read_csv(io.StringIO(data), sep=",")
+df = pd.read_csv(fp.output_file10, sep=",")
 df["start_time_epoch"] = (
-    pd.to_datetime(df["DATE"] + " " + df["START TIME"]).astype(int) // 10**9
+    pd.to_datetime(df["date"] + " " + df["start_time"]).astype(int) // 10**9
 )
 df["end_time_epoch"] = (
-    pd.to_datetime(df["DATE"] + " " + df["END TIME"]).astype(int) // 10**9
+    pd.to_datetime(df["date"] + " " + df["end_time"]).astype(int) // 10**9
 )
 
-rolling_avg = df["IMPORT (KWh)"].rolling(window=4).mean()
+rolling_avg = df["import_kwh"].rolling(window=4).mean()
 df["rolling_avg"] = rolling_avg
 
 json_data = df.to_json(orient="records")
-with open(fp.output_file2, "w") as json_file:
+with open(fp.output_file11, "w") as json_file:
     json_file.write(json_data)
 
 records = json.loads(json_data)
 
-with open(fp.output_file3, "w") as jsonl_file:
+y = json.dumps(records, indent=2)
+with open(fp.output_file13, "w") as json_file:
+    json_file.write(y)
+
+with open(fp.output_file12, "w") as jsonl_file:
     for record in records:
         jsonl_file.write(json.dumps(record) + "\n")
 
