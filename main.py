@@ -1,14 +1,29 @@
 import csv
+import dataclasses
 import io
 import json
+import pathlib
 import re
 
-import pandas
+import pandas as pd
 
-in1 = "data.csv"
-out1 = "normalized_data.csv"
-out2 = "normalized_data.json"
-out3 = "normalized_data.jsonl"
+
+@dataclasses.dataclass
+class FilePaths:
+    input_file1: str = "data.csv"
+    output_file1: str = "normalized_data.csv"
+    output_file2: str = "normalized_data.json"
+    output_file3: str = "normalized_data.jsonl"
+
+    def clean(self):
+        for field in dataclasses.fields(self):
+            if field.name.startswith("output_file"):
+                file_path = getattr(self, field.name)
+                pathlib.Path(str(field)).unlink(missing_ok=True)
+
+
+fp = FilePaths()
+fp.clean()
 
 header = "TYPE,DATE,START TIME,END TIME,IMPORT (KWh),EXPORT (KWh),NOTES"
 
@@ -28,14 +43,13 @@ def assert_file_contains_expected_line(file_path, expected_line):
 
 
 try:
-    assert_file_contains_expected_line(in1, header)
+    assert_file_contains_expected_line(fp.input_file1, header)
 except AssertionError as e:
     print(f"AssertionError: {e}")
     print(f"Expected line: {header}")
     raise e
 
-
-with open(in1, "r") as file:
+with open(fp.input_file1, "r") as file:
     for line in file:
         if line.startswith(header):
             break
@@ -46,8 +60,7 @@ data = header + "\n" + data
 
 csv_string_io = io.StringIO(data)
 
-
-with open(out1, "w", newline="") as outfile:
+with open(fp.output_file1, "w", newline="") as outfile:
     reader = csv.reader(csv_string_io)
     writer = csv.writer(outfile)
 
@@ -56,31 +69,34 @@ with open(out1, "w", newline="") as outfile:
             row.append("")
         writer.writerow(row)
 
-
 header_names = header.split(",")
 
-df = pandas.read_csv(
+df = pd.read_csv(
     io.StringIO(data),
     header=None,
     names=header_names,
 )
 
-df = pandas.read_csv(io.StringIO(data), sep=",")
-df["datetime"] = pandas.to_datetime(df["DATE"] + " " + df["START TIME"])
-df.set_index("datetime", inplace=True)
+df = pd.read_csv(io.StringIO(data), sep=",")
+df["start_time_epoch"] = (
+    pd.to_datetime(df["DATE"] + " " + df["START TIME"]).astype(int) // 10**9
+)
+df["end_time_epoch"] = (
+    pd.to_datetime(df["DATE"] + " " + df["END TIME"]).astype(int) // 10**9
+)
+
 rolling_avg = df["IMPORT (KWh)"].rolling(window=4).mean()
 df["rolling_avg"] = rolling_avg
 
-print(df[["DATE", "START TIME", "IMPORT (KWh)", "rolling_avg"]])
-
-
-df = pandas.read_csv(out1)
-json_data = df.to_json(orient="records", indent=2)
-with open("normalized_data.json", "w") as json_file:
+json_data = df.to_json(orient="records")
+with open(fp.output_file2, "w") as json_file:
     json_file.write(json_data)
 
 records = json.loads(json_data)
 
-with open(out3, "w") as jsonl_file:
+with open(fp.output_file3, "w") as jsonl_file:
     for record in records:
         jsonl_file.write(json.dumps(record) + "\n")
+
+
+print(df)
