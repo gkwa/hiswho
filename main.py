@@ -31,17 +31,8 @@ except AssertionError as e:
     print(f"Expected line: {header}")
     raise e
 
-with open(in1, "r", newline="") as infile, open(out1, "w", newline="") as outfile:
-    reader = csv.reader(infile)
-    writer = csv.writer(outfile)
 
-    for row in reader:
-        if len(row) == 6:
-            row.append("")
-        writer.writerow(row)
-
-
-with open(out1, "r") as file:
+with open(in1, "r") as file:
     for line in file:
         if line.startswith(header):
             break
@@ -49,6 +40,18 @@ with open(out1, "r") as file:
     data = file.read()
 
 data = header + "\n" + data
+
+csv_string_io = io.StringIO(data)
+
+
+with open(out1, "w", newline="") as outfile:
+    reader = csv.reader(csv_string_io)
+    writer = csv.writer(outfile)
+
+    for row in reader:
+        if len(row) == 6:
+            row.append("")
+        writer.writerow(row)
 
 
 header_names = header.split(",")
