@@ -1,11 +1,14 @@
 import csv
 import io
+import json
 import re
 
 import pandas
 
 in1 = "data.csv"
 out1 = "normalized_data.csv"
+out2 = "normalized_data.json"
+out3 = "normalized_data.jsonl"
 
 header = "TYPE,DATE,START TIME,END TIME,IMPORT (KWh),EXPORT (KWh),NOTES"
 
@@ -69,3 +72,15 @@ rolling_avg = df["IMPORT (KWh)"].rolling(window=4).mean()
 df["rolling_avg"] = rolling_avg
 
 print(df[["DATE", "START TIME", "IMPORT (KWh)", "rolling_avg"]])
+
+
+df = pandas.read_csv(out1)
+json_data = df.to_json(orient="records", indent=2)
+with open("normalized_data.json", "w") as json_file:
+    json_file.write(json_data)
+
+records = json.loads(json_data)
+
+with open(out3, "w") as jsonl_file:
+    for record in records:
+        jsonl_file.write(json.dumps(record) + "\n")
