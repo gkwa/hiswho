@@ -50,6 +50,7 @@ def append_notes_column(content: io.StringIO) -> io.StringIO:
 
     which is the same, but with an extra comma at the end for records
     without notes.
+
     """
     content.seek(0)
     csv_reader = csv.reader(content)
@@ -68,6 +69,7 @@ def append_notes_column(content: io.StringIO) -> io.StringIO:
 def delete_lines_until_header(content: io.StringIO, header: str) -> io.StringIO:
     """loop over header lines and throw out data that is not header
     or data.
+
     """
     content.seek(0)
     content_str = content.getvalue()
@@ -91,6 +93,10 @@ def assert_column_headers(content: io.StringIO, header: str) -> io.StringIO:
 
 
 def modify_header(content: io.StringIO, new_header: str) -> io.StringIO:
+    """convert header to something more easily managed, so instead of
+    IMPORT (KWh), use import_kwh.
+
+    """
     content.seek(0)
     csv_reader = csv.reader(content)
 
@@ -106,6 +112,10 @@ def modify_header(content: io.StringIO, new_header: str) -> io.StringIO:
 
 
 def add_epoch_timestamps(content: io.StringIO) -> io.StringIO:
+    """dataframe prevents us from having to do slow loop over each
+    record
+
+    """
     content.seek(0)
     csv_reader = csv.reader(content)
 
@@ -123,6 +133,10 @@ def add_epoch_timestamps(content: io.StringIO) -> io.StringIO:
 
 
 def remove_date_column(content: io.StringIO) -> io.StringIO:
+    """we converted start_time and end_time to epoch so no need for
+    date field anymore.
+
+    """
     content.seek(0)
     csv_reader = csv.reader(content)
 
