@@ -141,9 +141,10 @@ def convert_to_jsonl(content: io.StringIO) -> io.StringIO:
     df = pandas.DataFrame(csv_reader, columns=next(csv_reader))
 
     buffer = io.StringIO()
+    # pandas makes converting dataframe to jsonl super easy:
     buffer.write(df.to_json(orient="records", lines=True))
-    buffer.seek(0)
 
+    buffer.seek(0)
     return buffer
 
 
