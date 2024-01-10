@@ -1,5 +1,5 @@
 * hiswho
-** needs scrapping data downloaded from this project
+** needs scraped electric utility usage data generated from this project
 
 https://github.com/taylormonacelli/eachload
 
