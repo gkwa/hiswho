@@ -18,7 +18,9 @@ to this:
 
 *** all files
 
+#+begin_example
 ./process_all.sh
+#+end_example
 
 *** single file
 
