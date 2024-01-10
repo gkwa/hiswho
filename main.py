@@ -85,6 +85,10 @@ def delete_lines_until_header(content: io.StringIO, header: str) -> io.StringIO:
 
 
 def assert_column_headers(content: io.StringIO, header: str) -> io.StringIO:
+    """if headers change from utility company, i want to know about
+    it.
+
+    """
     content.seek(0)
     csv_reader = csv.reader(content)
     actual_header = next(csv_reader)
