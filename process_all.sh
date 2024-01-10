@@ -1,8 +1,19 @@
-#!/usr/bin/evn bash
+#!/usr/bin/env bash
+
+data_dir=/Users/mtm/pdev/taylormonacelli/eachload/data
 
 rm -f all.jsonl
 
-find /Users/mtm/pdev/taylormonacelli/eachload/data -type f -name "*scl_electric_usage_interval_data*.csv" -exec sh -c '
+# unzip files to same dir:
+find $data_dir -type f -exec sh -c '
+    for file do
+        dir=$(dirname "${file}")
+        unzip -o "${file}" -d "${dir}"
+    done
+' sh {} +
+
+# transform files to current dir:
+find $data_dir -type f -name "*scl_electric_usage_interval_data*.csv" -exec sh -c '
     for file do
         python main.py --inpath "${file}"
     done
