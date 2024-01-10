@@ -66,6 +66,9 @@ def append_notes_column(content: io.StringIO) -> io.StringIO:
 
 
 def delete_lines_until_header(content: io.StringIO, header: str) -> io.StringIO:
+    """loop over header lines and throw out data that is not header
+    or data.
+    """
     content.seek(0)
     content_str = content.getvalue()
 
