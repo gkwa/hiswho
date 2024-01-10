@@ -1,0 +1,21 @@
+* hiswho
+
+** motivation
+
+I want to send my electric usage metrics into grafana.
+
+** summary
+
+Convert this:
+#+begin_example
+TYPE,DATE,START TIME,END TIME,IMPORT (KWh),EXPORT (KWh),NOTES
+Electric usage,2023-07-11,00:00,00:14,0.01,0.00
+Electric usage,2023-07-11,00:15,00:29,0.01,0.00
+#+end_example
+
+to this:
+#+begin_example
+type,start_time,end_time,import_kwh,export_kwh,notes
+Electric usage,1689033600,1689034440,0.01,0.00,
+Electric usage,1689034500,1689035340,0.01,0.00,
+#+end_example
