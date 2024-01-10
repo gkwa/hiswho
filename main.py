@@ -1,131 +1,61 @@
 import csv
-import dataclasses
-import io
-import json
-import pathlib
-import re
 import os
 
-import pandas as pd
+import toolz
 
 
-@dataclasses.dataclass
-class FilePaths:
-    input_file1: str = "data.csv"
-    output_file1: str = "normalized_data1.csv"
-    output_file2: str = "normalized_data2.json"
-    output_file3: str = "normalized_data3.jsonl"
-    output_file4: str = "normalized_data4.txt"
-    output_file5: str = "normalized_data5.txt"
-    output_file7: str = "normalized_data7.txt"
-    output_file8: str = "normalized_data8.txt"
-    output_file9: str = "normalized_data9.txt"
-    output_file10: str = "normalized_data10.txt"
-    output_file11: str = "normalized_data11.json"
-    output_file12: str = "normalized_data12.jsonl"
-    output_file13: str = "normalized_data13.json"
+def delete_lines_until_header(file_path, header):
+    with open(file_path, "r") as f:
+        lines = f.readlines()
 
-    def clean(self):
-        for field in dataclasses.fields(self):
-            if field.name.startswith("output_file"):
-                file_path = getattr(self, field.name)
-                pathlib.Path(str(field)).unlink(missing_ok=True)
+    # Find the index of the line containing the header
+    header_index = next((i for i, line in enumerate(lines) if header in line), None)
+
+    if header_index is not None:
+        # Write the lines after the header to a temporary file
+        temp_file_path = f"{file_path}.temp"
+        with open(temp_file_path, "w") as temp_file:
+            temp_file.writelines(lines[header_index:])
+
+        # Replace the original file with the temporary file
+        os.replace(temp_file_path, file_path)
 
 
-fp = FilePaths()
-fp.clean()
+def assert_header(file_path, header):
+    print(f"assert_header: {file_path}")
+    with open(file_path, "r") as f:
+        csv_reader = csv.reader(f)
+        file_header = next(csv_reader)
 
-header1 = "TYPE,DATE,START TIME,END TIME,IMPORT (KWh),EXPORT (KWh),NOTES"
-header2 = "type,date,start_time,end_time,import_kwh,export_kwh,notes"
-
-
-def assert_file_contains_expected_line(file_path, expected_line):
-    regex_pattern = re.compile(rf"^{re.escape(expected_line)}$")
-
-    with open(file_path, "r") as file:
-        for line_number, line in enumerate(file, start=1):
-            if regex_pattern.match(line.strip()):
-                break
-        else:
-            raise AssertionError(
-                "Expected line not found in the file "
-                f"'{file_path}' at line {line_number}"
-            )
+    assert header in file_header, f"Header '{header}' not found in {file_path}"
 
 
-try:
-    assert_file_contains_expected_line(fp.input_file1, header1)
-except AssertionError as e:
-    print(f"AssertionError: {e}")
-    print(f"Expected line: {header1}")
-    raise e
+def update_header(file_path, old_header, new_header):
+    with open(file_path, "r") as f:
+        lines = f.readlines()
+
+    # Find and replace the old header with the new header
+    updated_lines = [line.replace(old_header, new_header) for line in lines]
+
+    with open(file_path, "w") as f:
+        f.writelines(updated_lines)
 
 
-with open(fp.input_file1, "r") as infile:
-    data = infile.read()
+def process_data_files(original_file_paths, header_to_assert, old_header, new_header):
+    for file_path in original_file_paths:
+        toolz.pipe(
+            file_path,
+            lambda path: delete_lines_until_header(path, header_to_assert),
+            lambda path: assert_header(path, header_to_assert),
+            lambda path: update_header(path, old_header, new_header),
+        )
 
 
-converted_data = data.replace(header1, header2)
+old_header = "TYPE,DATE,START TIME,END TIME,IMPORT (KWh),EXPORT (KWh),NOTES"
+new_header = "type,date,start_time,end_time,import_kwh,export_kwh,notes"
+header_to_assert = old_header
+original_file_paths = [
+    "/Users/mtm/pdev/taylormonacelli/eachload/data/scl_electric_usage_interval_data_2280076854_1_2023-07-11_to_2023-09-06.csv"
+]
 
-with open(fp.output_file5, "w") as outfile:
-    outfile.write(converted_data)
-
-pathlib.Path(fp.output_file8).write_text(converted_data)
-
-with open(fp.output_file8, "r") as file:
-    for line in file:
-        if line.startswith(header2):
-            break
-
-    data5 = file.read()
-
-
-data5 = header2 + "\n" + data5
-pathlib.Path(fp.output_file7).write_text(data5)
-
-
-csv_string_io = io.StringIO(data5)
-
-with open(fp.output_file10, "w", newline="") as outfile:
-    reader = csv.reader(csv_string_io)
-    writer = csv.writer(outfile)
-
-    for row in reader:
-        if len(row) == 6:
-            row.append("")
-        writer.writerow(row)
-
-header_names = header2.split(",")
-
-df = pd.read_csv(
-    fp.output_file10,
-    names=header_names,
-)
-
-df = pd.read_csv(fp.output_file10, sep=",")
-df["start_time_epoch"] = (
-    pd.to_datetime(df["date"] + " " + df["start_time"]).astype(int) // 10**9
-)
-df["end_time_epoch"] = (
-    pd.to_datetime(df["date"] + " " + df["end_time"]).astype(int) // 10**9
-)
-
-rolling_avg = df["import_kwh"].rolling(window=4).mean()
-df["rolling_avg"] = rolling_avg
-
-json_data = df.to_json(orient="records")
-with open(fp.output_file11, "w") as json_file:
-    json_file.write(json_data)
-
-records = json.loads(json_data)
-
-y = json.dumps(records, indent=2)
-with open(fp.output_file13, "w") as json_file:
-    json_file.write(y)
-
-with open(fp.output_file12, "w") as jsonl_file:
-    for record in records:
-        jsonl_file.write(json.dumps(record) + "\n")
-
-
-print(df)
+process_data_files(original_file_paths, header_to_assert, old_header, new_header)
