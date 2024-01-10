@@ -87,7 +87,7 @@ def assert_column_headers(content: io.StringIO, header: str) -> io.StringIO:
     return content
 
 
-def update_header(content: io.StringIO, new_header: str) -> io.StringIO:
+def modify_header(content: io.StringIO, new_header: str) -> io.StringIO:
     content.seek(0)
     csv_reader = csv.reader(content)
 
@@ -136,19 +136,19 @@ def process_file(original_path: str, processed_path: str) -> io.StringIO:
     content = read_file(original_path)
     content = delete_lines_until_header(content, header1)
     content = assert_column_headers(content, header1)
-    content = update_header(content, header2)
+    content = modify_header(content, header2)
     content = append_notes_column(content)
     content = add_epoch_timestamps(content)
     content = remove_date_column(content)
     content = assert_column_headers(content, header3)
-    content = dataframe_to_jsonl(content)
+    content = convert_to_jsonl(content)
     content = write_file(content, processed_path)
     content = report_completion(content, original_path, processed_path)
 
     return content
 
 
-def dataframe_to_jsonl(content: io.StringIO) -> io.StringIO:
+def convert_to_jsonl(content: io.StringIO) -> io.StringIO:
     content.seek(0)
     csv_reader = csv.reader(content)
 
