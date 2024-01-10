@@ -1,8 +1,13 @@
+import argparse
 import csv
 import io
 import pathlib
 
 import pandas
+
+header1 = "TYPE,DATE,START TIME,END TIME,IMPORT (KWh),EXPORT (KWh),NOTES"
+header2 = "type,date,start_time,end_time,import_kwh,export_kwh,notes"
+header3 = "type,start_time,end_time,import_kwh,export_kwh,notes"
 
 
 def report_completion(
@@ -129,24 +134,52 @@ def remove_date_column(content: io.StringIO) -> io.StringIO:
 def process_file(original_path: str, processed_path: str) -> io.StringIO:
     delete_processed_file(processed_path)
     content = read_file(original_path)
-    content = assert_column_headers(content, header1)
     content = delete_lines_until_header(content, header1)
+    content = assert_column_headers(content, header1)
     content = update_header(content, header2)
     content = append_notes_column(content)
     content = add_epoch_timestamps(content)
     content = remove_date_column(content)
     content = assert_column_headers(content, header3)
+    content = dataframe_to_jsonl(content)
     content = write_file(content, processed_path)
     content = report_completion(content, original_path, processed_path)
 
     return content
 
 
-original_file_path = "/Users/mtm/pdev/taylormonacelli/eachload/data/scl_electric_usage_interval_data_2280076854_1_2023-07-11_to_2023-09-06.csv"
-processed_file_path = f"{original_file_path}.processed.csv"
+def dataframe_to_jsonl(content: io.StringIO) -> io.StringIO:
+    content.seek(0)
+    csv_reader = csv.reader(content)
 
-header1 = "TYPE,DATE,START TIME,END TIME,IMPORT (KWh),EXPORT (KWh),NOTES"
-header2 = "type,date,start_time,end_time,import_kwh,export_kwh,notes"
-header3 = "type,start_time,end_time,import_kwh,export_kwh,notes"
+    df = pandas.DataFrame(csv_reader, columns=next(csv_reader))
 
-process_file(original_file_path, processed_file_path)
+    buffer = io.StringIO()
+    buffer.write(df.to_json(orient="records", lines=True))
+    buffer.seek(0)
+
+    return buffer
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="Transform utility data into a format "
+        "that can be imported into grafana."
+    )
+
+    parser.add_argument("--inpath", required=True, help="Input path")
+    parser.add_argument("--outpath", default=None, help="Output path")
+
+    args = parser.parse_args()
+
+    inpath = pathlib.Path(args.inpath)
+    outpath = args.outpath
+
+    if outpath is None:
+        outpath = f"{inpath.stem}-processed.jsonl"
+
+    process_file(inpath, outpath)
+
+
+if __name__ == "__main__":
+    main()

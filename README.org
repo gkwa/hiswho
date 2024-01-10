@@ -10,9 +10,14 @@ Electric usage,2023-07-11,00:15,00:29,0.01,0.00
 
 to this:
 #+begin_example
-type,start_time,end_time,import_kwh,export_kwh,notes
-Electric usage,1689033600,1689034440,0.01,0.00,
-Electric usage,1689034500,1689035340,0.01,0.00,
+{"type":"Electric usage","start_time":"1689033600","end_time":"1689034440","import_kwh":"0.01","export_kwh":"0.00","notes":""}
+{"type":"Electric usage","start_time":"1689034500","end_time":"1689035340","import_kwh":"0.01","export_kwh":"0.00","notes":""}
+#+end_example
+
+** usage
+
+#+begin_example
+python main.py --inpath /Users/mtm/pdev/taylormonacelli/eachload/data/scl_electric_usage_interval_data_2280076854_1_2023-07-11_to_2023-09-06.csv
 #+end_example
 
 ** motivation
