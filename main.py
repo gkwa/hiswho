@@ -131,6 +131,19 @@ def remove_date_column(content: io.StringIO) -> io.StringIO:
     return buffer
 
 
+def convert_to_jsonl(content: io.StringIO) -> io.StringIO:
+    content.seek(0)
+    csv_reader = csv.reader(content)
+
+    df = pandas.DataFrame(csv_reader, columns=next(csv_reader))
+
+    buffer = io.StringIO()
+    buffer.write(df.to_json(orient="records", lines=True))
+    buffer.seek(0)
+
+    return buffer
+
+
 def process_file(original_path: str, processed_path: str) -> io.StringIO:
     delete_processed_file(processed_path)
     content = read_file(original_path)
@@ -146,19 +159,6 @@ def process_file(original_path: str, processed_path: str) -> io.StringIO:
     content = report_completion(content, original_path, processed_path)
 
     return content
-
-
-def convert_to_jsonl(content: io.StringIO) -> io.StringIO:
-    content.seek(0)
-    csv_reader = csv.reader(content)
-
-    df = pandas.DataFrame(csv_reader, columns=next(csv_reader))
-
-    buffer = io.StringIO()
-    buffer.write(df.to_json(orient="records", lines=True))
-    buffer.seek(0)
-
-    return buffer
 
 
 def main():
