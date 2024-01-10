@@ -7,15 +7,23 @@ https://github.com/taylormonacelli/eachload
 
 Convert this:
 #+begin_example
+
+Name: John Doe
+Address: 123 Main Street, Cityville, State 56789
+Account Number: 9876543210
+Service: 1234567890
+
 TYPE,DATE,START TIME,END TIME,IMPORT (KWh),EXPORT (KWh),NOTES
 Electric usage,2023-07-11,00:00,00:14,0.01,0.00
 Electric usage,2023-07-11,00:15,00:29,0.01,0.00
+...
 #+end_example
 
 to this:
 #+begin_example
 {"type":"Electric usage","start_time":"1689033600","end_time":"1689034440","import_kwh":"0.01","export_kwh":"0.00","notes":""}
 {"type":"Electric usage","start_time":"1689034500","end_time":"1689035340","import_kwh":"0.01","export_kwh":"0.00","notes":""}
+...
 #+end_example
 
 ** usage
