@@ -48,8 +48,8 @@ def append_notes_column(content: io.StringIO) -> io.StringIO:
     Electric usage,1689033600,1689034440,0.01,0.00,
     Electric usage,1689033600,1689034440,0.01,0.00,some note recarding this row
 
-    which is the same, but with an extra comma at the end for records
-    without notes.
+    which is the same as the first, but with an extra comma at the end
+    for records without notes.
 
     """
     content.seek(0)
@@ -72,9 +72,8 @@ def delete_lines_until_header(content: io.StringIO, header: str) -> io.StringIO:
 
     """
     content.seek(0)
-    content_str = content.getvalue()
 
-    lines = content_str.split("\n")
+    lines = content.getvalue().split("\n")
     for i, line in enumerate(lines):
         if header in line:
             new_content = "\n".join(lines[i:])
