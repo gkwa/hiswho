@@ -5,10 +5,14 @@ import pathlib
 import pandas
 
 
-def report_completion(original_path: str, processed_path: str) -> None:
+def report_completion(
+    content: io.StringIO, original_path: str, processed_path: str
+) -> None:
     path1 = pathlib.Path(original_path)
     path2 = pathlib.Path(processed_path)
     print(f"Processed {path1.name} into {path2.name}")
+
+    return content
 
 
 def delete_processed_file(file_path: str) -> None:
@@ -20,7 +24,7 @@ def read_file(file_path: str) -> io.StringIO:
         return io.StringIO(file.read())
 
 
-def write_file(file_path: str, content: io.StringIO) -> io.StringIO:
+def write_file(content: io.StringIO, file_path: str) -> io.StringIO:
     content.seek(0)
     with open(file_path, "w") as file:
         file.write(content.getvalue())
@@ -29,8 +33,7 @@ def write_file(file_path: str, content: io.StringIO) -> io.StringIO:
 
 
 def append_notes_column(content: io.StringIO) -> io.StringIO:
-    """
-    transform this:
+    """transform this:
     type,start_time,end_time,import_kwh,export_kwh,notes
     Electric usage,1689033600,1689034440,0.01,0.00
     Electric usage,1689033600,1689034440,0.01,0.00,some note recarding this row
@@ -40,7 +43,8 @@ def append_notes_column(content: io.StringIO) -> io.StringIO:
     Electric usage,1689033600,1689034440,0.01,0.00,
     Electric usage,1689033600,1689034440,0.01,0.00,some note recarding this row
 
-    which is the same, but with an extra column at the end for records without notes
+    which is the same, but with an extra comma at the end for records
+    without notes.
     """
     content.seek(0)
     csv_reader = csv.reader(content)
@@ -132,8 +136,8 @@ def process_file(original_path: str, processed_path: str) -> io.StringIO:
     content = add_epoch_timestamps(content)
     content = remove_date_column(content)
     content = assert_column_headers(content, header3)
-    write_file(processed_path, content)
-    report_completion(original_path, processed_path)
+    content = write_file(content, processed_path)
+    content = report_completion(content, original_path, processed_path)
 
     return content
 
