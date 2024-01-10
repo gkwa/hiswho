@@ -9,4 +9,3 @@ find /Users/mtm/pdev/taylormonacelli/eachload/data -type f -name "*scl_electric_
 ' sh {} +
 cat *.jsonl | sort >all.jsonl
 jq -s '.' all.jsonl >all.json
-rm -f all.jsonl
