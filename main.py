@@ -146,9 +146,9 @@ def remove_date_column(content: io.StringIO) -> io.StringIO:
     df = pandas.DataFrame(csv_reader, columns=next(csv_reader))
     df_dropped = df.drop("date", axis=1)
 
-    buffer = io.StringIO()
-    df_dropped.to_csv(buffer, index=False)
-    return buffer
+    new_content = io.StringIO()
+    df_dropped.to_csv(new_content, index=False)
+    return new_content
 
 
 def convert_to_jsonl(content: io.StringIO) -> io.StringIO:
@@ -157,11 +157,11 @@ def convert_to_jsonl(content: io.StringIO) -> io.StringIO:
 
     df = pandas.DataFrame(csv_reader, columns=next(csv_reader))
 
-    buffer = io.StringIO()
+    new_content = io.StringIO()
     # pandas makes converting dataframe to jsonl super easy:
-    buffer.write(df.to_json(orient="records", lines=True))
+    new_content.write(df.to_json(orient="records", lines=True))
 
-    return buffer
+    return new_content
 
 
 def process_file(original_path: str, processed_path: str) -> io.StringIO:
