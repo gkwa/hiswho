@@ -123,16 +123,25 @@ def add_epoch_timestamps(content: io.StringIO) -> io.StringIO:
     csv_reader = csv.reader(content)
 
     df = pandas.DataFrame(csv_reader, columns=next(csv_reader))
-    df["start_time"] = (
-        pandas.to_datetime(df["date"] + " " + df["start_time"]).astype(int) // 10**9
-    )
-    df["end_time"] = (
-        pandas.to_datetime(df["date"] + " " + df["end_time"]).astype(int) // 10**9
-    )
 
-    buffer = io.StringIO()
-    df.to_csv(buffer, index=False)
-    return buffer
+    try:
+        df["start_time"] = pandas.to_datetime(
+            df["date"] + " " + df["start_time"], format="%Y-%m-%d %H:%M"
+        )
+        df["end_time"] = pandas.to_datetime(
+            df["date"] + " " + df["end_time"], format="%Y-%m-%d %H:%M"
+        )
+    except pandas.errors.OutOfBoundsDatetime:
+        print("Error: Out of bounds datetime encountered. Check for invalid values.")
+
+    new_content = io.StringIO()
+    df.to_csv(new_content, index=False)
+
+    column_types = df.dtypes
+    print("\nColumn Types:")
+    print(column_types)
+
+    return new_content
 
 
 def remove_date_column(content: io.StringIO) -> io.StringIO:
