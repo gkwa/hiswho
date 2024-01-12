@@ -198,13 +198,14 @@ def main():
     inpath = pathlib.Path(args.inpath)
     outpath = args.outpath
 
-    if args.no_cache:
-        delete_processed_file(processed_path)
-
     if outpath is None:
         outpath = f"{inpath.stem}-processed.jsonl"
 
-    process_file(inpath, outpath)
+    if args.no_cache:
+        process_file(inpath, outpath)
+    else:
+        if not pathlib.Path(outpath).exists():
+            process_file(inpath, outpath)
 
 
 if __name__ == "__main__":
