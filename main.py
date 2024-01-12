@@ -168,7 +168,6 @@ def convert_to_jsonl(content: io.StringIO) -> io.StringIO:
 
 
 def process_file(original_path: str, processed_path: str) -> io.StringIO:
-    delete_processed_file(processed_path)
     content = read_file(original_path)
     content = delete_lines_until_header(content, header1)
     content = assert_column_headers(content, header1)
@@ -192,11 +191,15 @@ def main():
 
     parser.add_argument("--inpath", required=True, help="Input path")
     parser.add_argument("--outpath", default=None, help="Output path")
+    parser.add_argument("--no-cache", action="store_true", default=False)
 
     args = parser.parse_args()
 
     inpath = pathlib.Path(args.inpath)
     outpath = args.outpath
+
+    if args.no_cache:
+        delete_processed_file(processed_path)
 
     if outpath is None:
         outpath = f"{inpath.stem}-processed.jsonl"
