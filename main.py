@@ -240,14 +240,14 @@ def summarize_files(_dir: str) -> None:
     daily_import_usage.to_json(outpath3, orient="records", lines=False, indent=2)
 
 
-def process_dir(_dir: str, args: argparse.Namespace) -> None:
-    matching_files = find_matching_files(_dir)
-    process_files(matching_files, args)
-    summarize_files(args.scratch)
+def process_dir(data_dir: str, scratch_dir: str, no_cache: bool) -> None:
+    matching_files = find_matching_files(data_dir)
+    process_files(matching_files, scratch_dir, no_cache)
+    summarize_files(scratch_dir)
 
 
-def process_files(paths: list, args: argparse.Namespace) -> None:
-    _dir = pathlib.Path(args.scratch)
+def process_files(paths: list, scratch_dir: str, no_cache: bool) -> None:
+    _dir = pathlib.Path(scratch_dir)
     _dir.mkdir(parents=True, exist_ok=True)
 
     outpaths = []
@@ -258,7 +258,7 @@ def process_files(paths: list, args: argparse.Namespace) -> None:
 
         outpaths.append(outpath)
 
-        if args.no_cache:
+        if no_cache:
             delete_processed_file(outpath)
             process_file(inpath, outpath)
         else:
@@ -302,7 +302,11 @@ def main():
     parser.add_argument("--scratch-dir", default="scratch", dest="scratch")
 
     args = parser.parse_args()
-    process_dir(args.basedir, args)
+
+    scratch_dir = pathlib.Path(args.scratch)
+    data_dir = pathlib.Path(args.basedir)
+
+    process_dir(data_dir, scratch_dir, args.no_cache)
 
 
 if __name__ == "__main__":
