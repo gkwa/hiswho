@@ -1,9 +1,31 @@
 import argparse
 import csv
 import io
+import logging
 import pathlib
 
 import pandas
+
+
+def setup_logger():
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+
+    file_handler = logging.FileHandler("app.log")
+    file_handler.setLevel(logging.DEBUG)
+
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG)
+
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    file_handler.setFormatter(formatter)
+    console_handler.setFormatter(formatter)
+
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+
+    return logger
+
 
 header1 = "TYPE,DATE,START TIME,END TIME,IMPORT (KWh),EXPORT (KWh),NOTES"
 header2 = "type,date,start_time,end_time,import_kwh,export_kwh,notes"
@@ -183,30 +205,35 @@ def process_file(original_path: str, processed_path: str) -> io.StringIO:
     return content
 
 
+def process_files(args: argparse.Namespace) -> None:
+    for path in args.paths:
+        inpath = pathlib.Path(path)
+
+        outpath = f"{inpath.stem}-processed.jsonl"
+
+        if args.no_cache:
+            delete_processed_file(outpath)
+            process_file(inpath, outpath)
+        else:
+            if pathlib.Path(outpath).exists():
+                logger.debug(f"Skipping {inpath.name} because it already exists.")
+                continue
+            process_file(inpath, outpath)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Transform utility data into a format "
         "that can be imported into grafana."
     )
 
-    parser.add_argument("--inpath", required=True, help="Input path")
-    parser.add_argument("--outpath", default=None, help="Output path")
+    parser.add_argument("paths", nargs="+", help="Paths to input files")
     parser.add_argument("--no-cache", action="store_true", default=False)
 
     args = parser.parse_args()
-
-    inpath = pathlib.Path(args.inpath)
-    outpath = args.outpath
-
-    if outpath is None:
-        outpath = f"{inpath.stem}-processed.jsonl"
-
-    if args.no_cache:
-        process_file(inpath, outpath)
-    else:
-        if not pathlib.Path(outpath).exists():
-            process_file(inpath, outpath)
+    process_files(args)
 
 
 if __name__ == "__main__":
+    logger = setup_logger()
     main()
