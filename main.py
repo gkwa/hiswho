@@ -11,7 +11,7 @@ def setup_logger():
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
 
-    file_handler = logging.FileHandler("app.log")
+    file_handler = logging.FileHandler("hiswho.log")
     file_handler.setLevel(logging.DEBUG)
 
     console_handler = logging.StreamHandler()
@@ -21,7 +21,7 @@ def setup_logger():
     file_handler.setFormatter(formatter)
     console_handler.setFormatter(formatter)
 
-    logger.addHandler(file_handler)
+    # logger.addHandler(file_handler)
     logger.addHandler(console_handler)
 
     return logger
@@ -205,20 +205,44 @@ def process_file(original_path: str, processed_path: str) -> io.StringIO:
     return content
 
 
-def process_files(args: argparse.Namespace) -> None:
-    for path in args.paths:
+def process_dir(directory_path: str, args: argparse.Namespace) -> None:
+    matching_files = find_matching_files(directory_path)
+    process_files(matching_files, args)
+
+
+def process_files(paths: list, args: argparse.Namespace) -> None:
+    outpaths = []
+    for path in paths:
         inpath = pathlib.Path(path)
 
         outpath = f"{inpath.stem}-processed.jsonl"
+        outpaths.append(outpath)
 
         if args.no_cache:
             delete_processed_file(outpath)
             process_file(inpath, outpath)
         else:
             if pathlib.Path(outpath).exists():
-                logger.debug(f"Skipping {inpath.name} because it already exists.")
+                logger.debug(f"skip creating {inpath} because it already exists.")
                 continue
             process_file(inpath, outpath)
+
+    lines = []
+    for path in outpaths:
+        for line in open(path, "r"):
+            lines.append(line)
+
+    unique_sorted_lines = sorted(set(lines))
+
+    with open("all.jsonl", "w") as output_file:
+        output_file.writelines(unique_sorted_lines)
+
+
+def find_matching_files(directory_path):
+    pattern = "scl_electric_usage_interval_data*.csv"
+    directory = pathlib.Path(directory_path)
+    matching_files = list(directory.rglob(pattern))
+    return [str(file) for file in matching_files]
 
 
 def main():
@@ -227,11 +251,11 @@ def main():
         "that can be imported into grafana."
     )
 
-    parser.add_argument("paths", nargs="+", help="Paths to input files")
+    parser.add_argument("basedir", help="Paths to input files")
     parser.add_argument("--no-cache", action="store_true", default=False)
 
     args = parser.parse_args()
-    process_files(args)
+    process_dir(args.basedir, args)
 
 
 if __name__ == "__main__":
