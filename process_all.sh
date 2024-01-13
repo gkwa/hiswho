@@ -9,4 +9,4 @@ cd ~/pdev/taylormonacelli/downcan/
 make && ./downcan --data-dir $data_dir --verbose --verbose
 
 cd $script_dir
-python main.py $data_dir
+python main.py -vv $data_dir

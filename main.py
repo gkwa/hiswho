@@ -9,15 +9,19 @@ import jsonlines
 import pandas
 
 
-def setup_logger():
+def setup_logger(verbosity):
     logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
+
+    # Set log level based on verbosity
+    log_levels = [logging.WARN, logging.INFO, logging.DEBUG]
+    log_level = log_levels[min(verbosity, 2)]  # Cap at DEBUG level
+    logger.setLevel(log_level)
 
     file_handler = logging.FileHandler("hiswho.log")
-    file_handler.setLevel(logging.DEBUG)
+    file_handler.setLevel(log_level)
 
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.DEBUG)
+    console_handler.setLevel(log_level)
 
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
     file_handler.setFormatter(formatter)
@@ -291,18 +295,7 @@ def find_matching_files(_dir: str):
     return [str(file) for file in matching_files]
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Transform utility data into a format "
-        "that can be imported into grafana."
-    )
-
-    parser.add_argument("basedir", help="Paths to input files")
-    parser.add_argument("--no-cache", action="store_true", default=False)
-    parser.add_argument("--scratch-dir", default="scratch", dest="scratch")
-
-    args = parser.parse_args()
-
+def main(args: argparse.Namespace = None):
     scratch_dir = pathlib.Path(args.scratch)
     data_dir = pathlib.Path(args.basedir)
 
@@ -310,5 +303,20 @@ def main():
 
 
 if __name__ == "__main__":
-    logger = setup_logger()
-    main()
+    parser = argparse.ArgumentParser(
+        description="Transform utility data into a format "
+        "that can be imported into grafana."
+    )
+
+    parser.add_argument(
+        "--verbose", "-v", action="count", default=0, help="Increase verbosity level"
+    )
+    parser.add_argument("basedir", help="Paths to input files")
+    parser.add_argument("--no-cache", action="store_true", default=False)
+    parser.add_argument("--scratch-dir", default="scratch", dest="scratch")
+
+    args = parser.parse_args()
+
+    logger = setup_logger(args.verbose)
+
+    main(args)
