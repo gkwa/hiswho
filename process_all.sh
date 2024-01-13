@@ -10,4 +10,3 @@ make && ./downcan --data-dir $data_dir --verbose --verbose
 
 cd $script_dir
 python main.py $data_dir
-python main2.py

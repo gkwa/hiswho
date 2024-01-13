@@ -1,9 +1,11 @@
 import argparse
 import csv
 import io
+import json
 import logging
 import pathlib
 
+import jsonlines
 import pandas
 
 
@@ -205,17 +207,55 @@ def process_file(original_path: str, processed_path: str) -> io.StringIO:
     return content
 
 
-def process_dir(directory_path: str, args: argparse.Namespace) -> None:
-    matching_files = find_matching_files(directory_path)
+def jsonl_to_json(inpath: str, outpath: str) -> None:
+    try:
+        with jsonlines.open(inpath, "r") as reader:
+            json_data = list(reader)
+
+        with open(outpath, "w") as writer:
+            json.dump(json_data, writer, indent=2)
+
+    except Exception as e:
+        print(f"Error processing the files: {e}")
+        raise
+
+
+def summarize_files(_dir: str) -> None:
+    sandbox_dir = pathlib.Path(_dir)
+
+    inpath = sandbox_dir / "all.jsonl"
+
+    assert inpath.exists(), f"{inpath} does not exist."
+
+    outpath2 = sandbox_dir / "daily_import_usage.jsonl"
+    outpath3 = sandbox_dir / "daily_import_usage.json"
+
+    df = pandas.read_json(inpath, lines=True)
+    df["start_time"] = pandas.to_datetime(df["start_time"])
+    df.set_index("start_time", inplace=True)
+    daily_import_usage = df["import_kwh"].resample("D").sum().asfreq("D")
+    daily_import_usage = daily_import_usage.reset_index()
+
+    daily_import_usage.to_json(outpath2, orient="records", lines=True)
+    daily_import_usage.to_json(outpath3, orient="records", lines=False, indent=2)
+
+
+def process_dir(_dir: str, args: argparse.Namespace) -> None:
+    matching_files = find_matching_files(_dir)
     process_files(matching_files, args)
+    summarize_files(args.scratch)
 
 
 def process_files(paths: list, args: argparse.Namespace) -> None:
+    _dir = pathlib.Path(args.scratch)
+    _dir.mkdir(parents=True, exist_ok=True)
+
     outpaths = []
     for path in paths:
         inpath = pathlib.Path(path)
 
-        outpath = f"{inpath.stem}-processed.jsonl"
+        outpath = _dir / f"{inpath.stem}.jsonl"
+
         outpaths.append(outpath)
 
         if args.no_cache:
@@ -229,18 +269,24 @@ def process_files(paths: list, args: argparse.Namespace) -> None:
 
     lines = []
     for path in outpaths:
-        for line in open(path, "r"):
-            lines.append(line)
+        with open(path, "r") as file:
+            lines.extend(file.readlines())
 
     unique_sorted_lines = sorted(set(lines))
 
-    with open("all.jsonl", "w") as output_file:
+    aggregate_path = _dir / "all.jsonl"
+
+    with open(aggregate_path, "w") as output_file:
         output_file.writelines(unique_sorted_lines)
 
+    outpath = aggregate_path.with_suffix(".json")
 
-def find_matching_files(directory_path):
+    jsonl_to_json(str(aggregate_path), str(outpath))
+
+
+def find_matching_files(_dir: str):
     pattern = "scl_electric_usage_interval_data*.csv"
-    directory = pathlib.Path(directory_path)
+    directory = pathlib.Path(_dir)
     matching_files = list(directory.rglob(pattern))
     return [str(file) for file in matching_files]
 
@@ -253,6 +299,7 @@ def main():
 
     parser.add_argument("basedir", help="Paths to input files")
     parser.add_argument("--no-cache", action="store_true", default=False)
+    parser.add_argument("--scratch-dir", default="scratch", dest="scratch")
 
     args = parser.parse_args()
     process_dir(args.basedir, args)
