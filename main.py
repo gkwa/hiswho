@@ -9,15 +9,14 @@ import jsonlines
 import pandas
 
 
-def setup_logger(verbosity):
+def setup_logger(verbosity, logfile="hiswho.log"):
     logger = logging.getLogger(__name__)
 
-    # Set log level based on verbosity
     log_levels = [logging.WARN, logging.INFO, logging.DEBUG]
     log_level = log_levels[min(verbosity, 2)]  # Cap at DEBUG level
     logger.setLevel(log_level)
 
-    file_handler = logging.FileHandler("hiswho.log")
+    file_handler = logging.FileHandler(logfile)
     file_handler.setLevel(log_level)
 
     console_handler = logging.StreamHandler()
