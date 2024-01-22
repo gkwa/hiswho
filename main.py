@@ -38,7 +38,6 @@ header3 = "type,start_time,end_time,import_kwh,export_kwh,notes"
 header4 = (
     "type,start_time,end_time,import_kwh,export_kwh,notes,rolling_average_import_kwh"
 )
-header5 = "type,start_time,end_time,import_kwh,export_kwh,notes,rolling_average_import_kwh,above_threshold"
 
 
 def report_completion(
@@ -229,42 +228,6 @@ def add_column_rolling_average(content: io.StringIO) -> io.StringIO:
     return new_content
 
 
-def add_column_duration_above_threshold(content: io.StringIO) -> io.StringIO:
-    """add a rolling total column to the data"""
-    content.seek(0)
-    csv_reader = csv.reader(content)
-
-    logger = logging.getLogger(__name__)
-    logger.debug(f"add_column_duration_above_threshold")
-
-    df = pandas.DataFrame(csv_reader, columns=next(csv_reader))
-
-    df["start_time"] = pandas.to_datetime(df["start_time"])
-    df["end_time"] = pandas.to_datetime(df["end_time"])
-
-    # Set the threshold for import_kwh
-    threshold = 0.03
-
-    # Filter rows where import_kwh is greater than the threshold
-    above_threshold_df = df[df["import_kwh"].astype(float) > threshold].copy()
-
-    # Calculate the duration for each row and convert to seconds
-    above_threshold_df.loc[:, "duration_seconds"] = (
-        above_threshold_df["end_time"] - above_threshold_df["start_time"]
-    ).dt.total_seconds()
-
-    # Calculate the rolling total of duration above threshold
-    df["above_threshold"] = (
-        above_threshold_df["duration_seconds"]
-        .rolling(window=len(df), min_periods=1)
-        .sum()
-    )
-
-    new_content = io.StringIO()
-    df.to_csv(new_content, index=False)
-    return new_content
-
-
 def jsonl_to_json(inpath: str, outpath: str) -> None:
     try:
         with jsonlines.open(inpath, "r") as reader:
@@ -370,8 +333,6 @@ def process_file(original_path: str, processed_path: str) -> io.StringIO:
     content = add_column_rolling_average(content)
     content = delete_column_date(content)
     content = assert_column_headers(content, header4)
-    content = add_column_duration_above_threshold(content)
-    content = assert_column_headers(content, header5)
     content = convert_to_jsonl(content)
     content = write_file(content, processed_path)
     content = report_completion(content, original_path, processed_path)
