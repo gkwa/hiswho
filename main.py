@@ -151,7 +151,7 @@ def modify_header(content: io.StringIO, new_header: str) -> io.StringIO:
     return new_content
 
 
-def add_column_epoch(content: io.StringIO) -> io.StringIO:
+def add_columns_start_end_time(content: io.StringIO) -> io.StringIO:
     """dataframe prevents us from having to do slow loop over each
     record
 
@@ -202,24 +202,6 @@ def convert_to_jsonl(content: io.StringIO) -> io.StringIO:
     new_content.write(df.to_json(orient="records", lines=True))
 
     return new_content
-
-
-def process_file(original_path: str, processed_path: str) -> io.StringIO:
-    content = read_file(original_path)
-    content = delete_lines_until_header(content, header1)
-    content = assert_column_headers(content, header1)
-    content = modify_header(content, header2)
-    content = add_column_notes(content)
-    content = add_column_epoch(content)
-    content = assert_column_headers(content, header2)
-    content = add_column_rolling_average(content)
-    content = delete_column_date(content)
-    content = assert_column_headers(content, header4)
-    content = convert_to_jsonl(content)
-    content = write_file(content, processed_path)
-    content = report_completion(content, original_path, processed_path)
-
-    return content
 
 
 def add_column_rolling_average(content: io.StringIO) -> io.StringIO:
@@ -296,7 +278,7 @@ def process_files(paths: list, scratch_dir: str, no_cache: bool) -> None:
         outpath = _dir / f"{inpath.stem}.jsonl"
 
         logger.debug(f"processing {inpath}")
-        logger.debug(f"outpath is {outpath}")
+        logger.debug(f"outpath is {outpath.resolve()}")
 
         outpaths.append(outpath)
 
@@ -338,6 +320,24 @@ def main(args: argparse.Namespace = None):
     data_dir = pathlib.Path(args.basedir)
 
     process_dir(data_dir, scratch_dir, args.no_cache)
+
+
+def process_file(original_path: str, processed_path: str) -> io.StringIO:
+    content = read_file(original_path)
+    content = delete_lines_until_header(content, header1)
+    content = assert_column_headers(content, header1)
+    content = modify_header(content, header2)
+    content = add_column_notes(content)
+    content = add_columns_start_end_time(content)
+    content = assert_column_headers(content, header2)
+    content = add_column_rolling_average(content)
+    content = delete_column_date(content)
+    content = assert_column_headers(content, header4)
+    content = convert_to_jsonl(content)
+    content = write_file(content, processed_path)
+    content = report_completion(content, original_path, processed_path)
+
+    return content
 
 
 if __name__ == "__main__":
