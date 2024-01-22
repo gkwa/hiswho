@@ -35,6 +35,9 @@ def setup_logger(verbosity, logfile="hiswho.log"):
 header1 = "TYPE,DATE,START TIME,END TIME,IMPORT (KWh),EXPORT (KWh),NOTES"
 header2 = "type,date,start_time,end_time,import_kwh,export_kwh,notes"
 header3 = "type,start_time,end_time,import_kwh,export_kwh,notes"
+header4 = (
+    "type,start_time,end_time,import_kwh,export_kwh,notes,rolling_average_import_kwh"
+)
 
 
 def report_completion(
@@ -64,7 +67,7 @@ def write_file(content: io.StringIO, file_path: str) -> io.StringIO:
     return content
 
 
-def append_notes_column(content: io.StringIO) -> io.StringIO:
+def add_column_notes(content: io.StringIO) -> io.StringIO:
     """transform this:
     type,start_time,end_time,import_kwh,export_kwh,notes
     Electric usage,1689033600,1689034440,0.01,0.00
@@ -110,7 +113,7 @@ def delete_lines_until_header(content: io.StringIO, header: str) -> io.StringIO:
     return content
 
 
-def assert_column_headers(content: io.StringIO, header: str) -> io.StringIO:
+def assert_column_headers(content: io.StringIO, expected_header: str) -> io.StringIO:
     """if headers change from utility company, i want to know about
     it.
 
@@ -118,7 +121,14 @@ def assert_column_headers(content: io.StringIO, header: str) -> io.StringIO:
     content.seek(0)
     csv_reader = csv.reader(content)
     actual_header = next(csv_reader)
-    assert actual_header == header.split(","), "Header does not exist."
+
+    expected_header_list = expected_header.split(",")
+
+    if expected_header_list != actual_header:
+        raise ValueError(
+            f"Header is not as expected. Expected: {expected_header_list}, Actual: {actual_header}"
+        )
+
     return content
 
 
@@ -141,7 +151,7 @@ def modify_header(content: io.StringIO, new_header: str) -> io.StringIO:
     return new_content
 
 
-def add_epoch_timestamps(content: io.StringIO) -> io.StringIO:
+def add_column_epoch(content: io.StringIO) -> io.StringIO:
     """dataframe prevents us from having to do slow loop over each
     record
 
@@ -165,7 +175,7 @@ def add_epoch_timestamps(content: io.StringIO) -> io.StringIO:
     return new_content
 
 
-def remove_date_column(content: io.StringIO) -> io.StringIO:
+def delete_column_date(content: io.StringIO) -> io.StringIO:
     """we converted start_time and end_time to epoch so no need for
     date field anymore.
 
@@ -199,15 +209,41 @@ def process_file(original_path: str, processed_path: str) -> io.StringIO:
     content = delete_lines_until_header(content, header1)
     content = assert_column_headers(content, header1)
     content = modify_header(content, header2)
-    content = append_notes_column(content)
-    content = add_epoch_timestamps(content)
-    content = remove_date_column(content)
-    content = assert_column_headers(content, header3)
+    content = add_column_notes(content)
+    content = add_column_epoch(content)
+    content = assert_column_headers(content, header2)
+    content = add_column_rolling_average(content)
+    content = delete_column_date(content)
+    content = assert_column_headers(content, header4)
     content = convert_to_jsonl(content)
     content = write_file(content, processed_path)
     content = report_completion(content, original_path, processed_path)
 
     return content
+
+
+def add_column_rolling_average(content: io.StringIO) -> io.StringIO:
+    """add a rolling average column to the data"""
+    content.seek(0)
+    csv_reader = csv.reader(content)
+
+    logger.debug(f"append_rolling_average_column")
+
+    df = pandas.DataFrame(csv_reader, columns=next(csv_reader))
+
+    # Convert 'import_kwh' column to numeric
+    df["import_kwh"] = pandas.to_numeric(df["import_kwh"], errors="coerce")
+
+    # Calculate rolling average for 'import_kwh' with adjustable window size
+    window_size = 4
+    df["rolling_average_import_kwh"] = (
+        df["import_kwh"].rolling(window=window_size).mean()
+    )
+    print(df)
+
+    new_content = io.StringIO()
+    df.to_csv(new_content, index=False)
+    return new_content
 
 
 def jsonl_to_json(inpath: str, outpath: str) -> None:
@@ -258,6 +294,9 @@ def process_files(paths: list, scratch_dir: str, no_cache: bool) -> None:
         inpath = pathlib.Path(path)
 
         outpath = _dir / f"{inpath.stem}.jsonl"
+
+        logger.debug(f"processing {inpath}")
+        logger.debug(f"outpath is {outpath}")
 
         outpaths.append(outpath)
 
