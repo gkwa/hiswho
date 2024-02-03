@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
-data_dir="/Users/mtm/pdev/taylormonacelli/eachload/data"
+data_dir=../eachload/data
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-cd ~/pdev/taylormonacelli/downcan/
+cd ../downcan
 make && ./downcan --data-dir $data_dir --verbose
 
 cd $script_dir

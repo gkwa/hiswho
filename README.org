@@ -33,7 +33,7 @@ to this:
 *** single file
 
 #+begin_example
-python main.py --inpath /Users/mtm/pdev/taylormonacelli/eachload/data/scl_electric_usage_interval_data_2280076854_1_2023-07-11_to_2023-09-06.csv
+python main.py --inpath ../eachload/data/scl_electric_usage_interval_data_2280076854_1_2023-07-11_to_2023-09-06.csv
 #+end_example
 
 ** depends on scraped electric utility usage data generated from this project
